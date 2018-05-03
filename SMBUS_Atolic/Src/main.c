@@ -52,8 +52,6 @@
 SMBUS_HandleTypeDef hsmbus1;
 SMBUS_StackHandleTypeDef LTM4675_SMBUS_StackContext;
 
-st_command_t *PMBUS_COMMANDS_pnt;
-extern st_command_t PMBUS_COMMANDS_TAB[];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,11 +100,15 @@ int main(void)
   MX_SMBUS_Init();
   /* USER CODE BEGIN 2 */
   STACK_SMBUS_Init(&LTM4675_SMBUS_StackContext);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
 
-//PMBUS_COMMANDS_pnt = PMBUS_COMMANDS_TAB;
-
-STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, PMBUS_COMMANDS_pnt, LTM4675_DevAddress1, WRITE);
+  if (STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[0], LTM4675_DevAddress1, WRITE) == HAL_OK)
+  {
+	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[1], LTM4675_DevAddress1, WRITE);
+  }
+  else
+  {
+	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+  }
 
   /* USER CODE END 2 */
 

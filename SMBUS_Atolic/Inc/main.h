@@ -57,7 +57,7 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define LTM4675_DevAddress1			0x40
+#define LTM4675_DevAddress1			0x4F
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
