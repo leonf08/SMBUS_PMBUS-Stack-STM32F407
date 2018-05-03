@@ -74,27 +74,27 @@
 		<link>
 			<name>SMBUS_PMBUS_Stack/Inc/stm32_PMBUS_stack.h</name>
 			<type>1</type>
-			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_PMBUS_Stack/Inc/stm32_PMBUS_stack.h</location>
+			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_Atolic/SMBUS_PMBUS_Stack/Inc/stm32_PMBUS_stack.h</location>
 		</link>
 		<link>
 			<name>SMBUS_PMBUS_Stack/Inc/stm32_SMBUS_stack.h</name>
 			<type>1</type>
-			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_PMBUS_Stack/Inc/stm32_SMBUS_stack.h</location>
+			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_Atolic/SMBUS_PMBUS_Stack/Inc/stm32_SMBUS_stack.h</location>
 		</link>
 		<link>
 			<name>SMBUS_PMBUS_Stack/Inc/stm32_config_stack.h</name>
 			<type>1</type>
-			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_PMBUS_Stack/Inc/stm32_config_stack.h</location>
+			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_Atolic/SMBUS_PMBUS_Stack/Inc/stm32_config_stack.h</location>
 		</link>
 		<link>
 			<name>SMBUS_PMBUS_Stack/Src/stm32_PMBUS_stack.c</name>
 			<type>1</type>
-			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_PMBUS_Stack/Src/stm32_PMBUS_stack.c</location>
+			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_Atolic/SMBUS_PMBUS_Stack/Src/stm32_PMBUS_stack.c</location>
 		</link>
 		<link>
 			<name>SMBUS_PMBUS_Stack/Src/stm32_SMBUS_stack.c</name>
 			<type>1</type>
-			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_PMBUS_Stack/Src/stm32_SMBUS_stack.c</location>
+			<location>C:/Users/kushnir/AppData/Roaming/SPB_Data/git/SMBUS_PMBUS-Stack-STM32F407/SMBUS_Atolic/SMBUS_PMBUS_Stack/Src/stm32_SMBUS_stack.c</location>
 		</link>
 	</linkedResources>
 </projectDescription>
