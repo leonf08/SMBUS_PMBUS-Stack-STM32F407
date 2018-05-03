@@ -298,11 +298,6 @@ HAL_StatusTypeDef STACK_PMBUS_HostCommandGroup(SMBUS_StackHandleTypeDef *pStackC
   */
   if (( ((pStackContext->StateMachine) & SMBUS_SMS_ACTIVE_MASK) == 0 ) && ( ( pCommand->cmnd_query & WRITE ) == WRITE ) )
   {
-    /*
-    becoming master, not listening any more
-    */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     if ( pCommand == NULL )
     {
       /*
@@ -484,11 +479,6 @@ HAL_StatusTypeDef STACK_PMBUS_MasterZoneWrite(SMBUS_StackHandleTypeDef *pStackCo
   */
   if (( ((pStackContext->StateMachine) & SMBUS_SMS_ACTIVE_MASK) == 0 ) && ( ( pCommand->cmnd_query & WRITE ) == WRITE ) )
   {    
-    /*
-    becoming master, not listening any more
-    */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     if ( pCommand == NULL )
     {
     /*
@@ -605,11 +595,6 @@ HAL_StatusTypeDef STACK_PMBUS_MasterReadZoneStatus(SMBUS_StackHandleTypeDef *pSt
    */
   if (((pStackContext->StateMachine) & SMBUS_SMS_ACTIVE_MASK) == 0 ) 
   {    
-    /*
-      Becoming master, not listening any more
-     */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     /*
       Remembering the address and command code for case of further processing of non-trivial command
     */

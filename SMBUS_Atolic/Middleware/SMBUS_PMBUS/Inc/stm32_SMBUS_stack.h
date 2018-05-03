@@ -240,10 +240,10 @@ extern "C"
     */
 
 /** @brief  Enable the dual address (and effectively Zone commands) on specified SMBUS peripheral.
-  * @param  __HANDLE__ specifies the SMBUS Handle. 
+  * @param  __HANDLE__ specifies the SMBUS Handle.
   * @retval None
   */
-#define __SMBUS_ZONE_ENABLE(__HANDLE__)                  (SET_BIT((__HANDLE__)->Instance->OAR2, I2C_OAR2_OA2EN))
+#define __SMBUS_ZONE_ENABLE(__HANDLE__)                  (SET_BIT((__HANDLE__)->Instance->OAR2, I2C_OAR2_ENDUAL))
 
 /** @brief  Disable the dual address (and effectively Zone commands) on specified SMBUS peripheral.
   * @param  __HANDLE__ specifies the SMBUS Handle.

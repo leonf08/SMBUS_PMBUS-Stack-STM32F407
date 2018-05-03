@@ -329,665 +329,6 @@ void HAL_SMBUS_MasterRxCpltCallback(SMBUS_HandleTypeDef *hsmbus)
   /* Program should not reach this statement */
 }
 
-/** @brief  Slave Tx Transfer completed callbacks.
-  * @param  hsmbus: Pointer to a SMBUS_HandleTypeDef structure that contains
-  *                the configuration information for the specified SMBUS.
-  * @retval None
-  */
-void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus)
-{
-  SMBUS_StackHandleTypeDef* pStackContext;
-
-  /*
-    Resolve which stack serves the port that initiated callback
-   */
-  pStackContext = STACK_SMBUS_ResolveContext( hsmbus );
-
-  /*
-    Completed transmission means this was not a quick command read but actual read.
-    We need to record this by clearing the flag.
-   */
-  pStackContext->StateMachine &= ~SMBUS_SMS_TRANSMIT;
-
-#ifdef  PMBUS13
-  /*
-    A case of Zone read - this slave devide has transmitted its data, will ignore further reads
-   */
-  if (pStackContext->SlaveAddress == SMBUS_ADDR_ZONE_READ)
-  {
-    __SMBUS_ZONE_DISABLE(hsmbus);
-    pStackContext->StateMachine |= SMBUS_SMS_ZONE_READ;    
-  }
-#endif  
-}
-
-/**
-  * @brief  Slave Rx Transfer completed callbacks.
-  * @param  hsmbus : Pointer to a SMBUS_HandleTypeDef structure that contains
-  *                the configuration information for the specified SMBUS.
-  * @retval None
-  */
-void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus)
-{
-  SMBUS_StackHandleTypeDef* pStackContext;
-  uint32_t       size;
-  uint32_t       xFerOptions = SMBUS_NEXT_FRAME;
-
-  /*
-    Resolve which stack serves the port that initiated callback
-   */
-  pStackContext = STACK_SMBUS_ResolveContext( hsmbus );
-
-  if ( pStackContext->StateMachine & SMBUS_SMS_IGNORED )
-  {
-    __HAL_SMBUS_GENERATE_NACK( hsmbus );
-    /* TCR may still stretch the SCL */
-    if ( hsmbus->Instance->ISR & I2C_ISR_TCR )
-    {
-      hsmbus->Instance->CR2 |= (((uint32_t) 1 << 16 ) & I2C_CR2_NBYTES);
-    }
-  }
-  else
-  {
-    /*
-      Case of no command identified yet
-    */
-    if ( pStackContext->CurrentCommand == NULL )
-    {
-      pStackContext->StateMachine &= ~SMBUS_SMS_RECEIVE;
-
-      /*
-        Reception completed, now we locate what command was received
-      */
-#ifdef PMBUS13
-      /*
-        Testing for an exception in the specification - the Zone Read has no
-        traditional command code
-      */
-      if (pStackContext->SlaveAddress == SMBUS_ADDR_ZONE_READ )
-      {
-        /*    
-         Example implementation follows, modify if needed.
-        */
-        if ( pStackContext->TheZone.readZone == pStackContext->TheZone.activeReadZone )
-        {              
-          /* This slave device will respond to this Zone Read call */
-          pStackContext->CurrentCommand = (st_command_t*) &ZONE_READ_COMMAND;
-        }
-        else 
-        {
-          /* This slave device will not respond to this Zone Read call */
-          pStackContext->StateMachine |= SMBUS_SMS_IGNORED;
-          pStackContext->StateMachine |= SMBUS_SMS_ZONE_READ;
-        }
-      }
-      else 
-      {
-#endif        
-        STACK_SMBUS_LocateCommand( pStackContext );
-#ifdef PMBUS13
-      }
-#endif
-      
-      /*
-      Unknown command case - send NACK
-      */
-      if ( pStackContext->CurrentCommand == NULL )
-      {
-        pStackContext->StateMachine |= SMBUS_SMS_IGNORED;
-        __HAL_SMBUS_GENERATE_NACK( hsmbus );
-        /* TCR may still stretch the SCL */
-        if ( hsmbus->Instance->ISR & I2C_ISR_TCR )
-        {
-          hsmbus->Instance->CR2 |= (((uint32_t) 1 << 16 ) & I2C_CR2_NBYTES);
-        }
-        /*
-        NOTE - Marking this case as error is optional, depends on application needs
-        */
-      }
-      else
-      {
-        /*
-          process call or block write case - read number of bytes
-        */
-        if (
-          ( pStackContext->CurrentCommand->cmnd_query & BLOCK_WRITE ) == BLOCK_WRITE ||
-          ( pStackContext->CurrentCommand->cmnd_query == BLK_PRC_CALL )
-        )
-        {
-          /*
-          Making the book-keeping and initiating the transaction.
-          */
-          pStackContext->Byte_count++;
-          pStackContext->StateMachine |= SMBUS_SMS_RECEIVE | SMBUS_SMS_PROCESSING;
-          HAL_SMBUS_Slave_Receive_IT( hsmbus, &(pStackContext->Buffer[1]), 1, xFerOptions );
-        }
-        else
-        {
-          /*
-            otherwise size of data is fixed
-            - TODO - this "read" condition is not perfect, and may fail with READ_OR_WRITE + PEC cases
-          */
-          if (
-            ( pStackContext->CurrentCommand->cmnd_query & READ ) ||
-            ( pStackContext->CurrentCommand->cmnd_query & PROCESS_CALL )
-          )
-          {
-            /*
-            There will be a read phase to follow, no PEC.
-            */
-            size = pStackContext->CurrentCommand->cmnd_master_Tx_size;
-          }
-          else
-          {
-            /*
-            This is going to be the last frame (simple write case)
-            */
-            size = pStackContext->CurrentCommand->cmnd_master_Tx_size;
-            if (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE )
-            {
-              size += PEC_SIZE;
-            }
-            xFerOptions = SMBUS_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
-          }
-
-          /* the case of having 2 byte long command code (or zone read)*/
-          if (
-              (pStackContext->CurrentCommand->cmnd_code == SMBUS_COMMAND_EXT ) ||
-              (pStackContext->SlaveAddress == SMBUS_ADDR_ZONE_READ )
-             )
-          {
-            xFerOptions = 0;
-          }
-          /*
-            anything left to receive?
-          */
-          if ( size > 1 )
-          {
-            pStackContext->Byte_count += size - 1;
-            pStackContext->StateMachine |= SMBUS_SMS_RECEIVE;
-            HAL_SMBUS_Slave_Receive_IT( hsmbus, &(pStackContext->Buffer[1]), size - 1, xFerOptions );
-            /*
-              command code byte subtracted from the command Tx size - it was received already
-            */
-          }
-        }
-      }
-    }
-    else /* CurrentCommand != NULL */
-    {
-      /*
-        A case of block reading continuation - reading the remaining data
-      */
-      if (( pStackContext->StateMachine & SMBUS_SMS_PROCESSING) == SMBUS_SMS_PROCESSING)
-      {
-
-#ifdef ARP
-        /*
-          special case of assign address - byte-by-byte reception and comparison
-          */
-        if ( ( pStackContext->StateMachine & SMBUS_SMS_ARP_AM ) && ( pStackContext->CurrentCommand == &(PMBUS_COMMANDS_ARP[3])) )
-        {
-          /* Retieving the current position */
-          size = pStackContext->Byte_count - 1;
-          size++;
-
-          /* If address received, we execute the command implementation */
-          if ( size > 18 )
-          {
-            STACK_SMBUS_ExecuteCommandARP( pStackContext );
-
-            /*
-              Command finished, marking the state
-            */
-            pStackContext->StateMachine &= ~(SMBUS_SMS_RECEIVE | SMBUS_SMS_PROCESSING);
-            pStackContext->StateMachine |= SMBUS_SMS_RESPONSE_READY;
-            /* Getting PEC byte of the command */
-            pStackContext->Byte_count = size + 1;
-          }
-          /* comparing the UDID with the buffer, NACK if not match */
-          else if ((size > 2) && ( pStackContext->Buffer[size-1] != pStackContext->ARP_UDID[size-3] ))
-          {
-            pStackContext->StateMachine |= SMBUS_SMS_IGNORED;
-            pStackContext->StateMachine &= ~(SMBUS_SMS_RECEIVE | SMBUS_SMS_PROCESSING);
-            __HAL_SMBUS_GENERATE_NACK( hsmbus );
-            /* TCR may still stretch the SCL */
-            if ( hsmbus->Instance->ISR & I2C_ISR_TCR )
-            {
-              hsmbus->Instance->CR2 |= (((uint32_t) 1 << 16 ) & I2C_CR2_NBYTES);
-            }
-          }
-          /* Getting next byte of the command */
-          else if (size == 18 )
-          {
-            pStackContext->Byte_count = size + 2;
-            xFerOptions = SMBUS_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
-            HAL_SMBUS_Slave_Receive_IT( hsmbus, &(pStackContext->Buffer[size]), 1 + PEC_SIZE, xFerOptions );
-          }
-          else
-          {
-            pStackContext->Byte_count = size + 1;
-            HAL_SMBUS_Slave_Receive_IT( hsmbus, &(pStackContext->Buffer[size]), 1, SMBUS_NEXT_FRAME );
-          }
-
-        }
-        else
-#endif /* ARP */
-
-        {
-          /*
-            size of remaining data has been alredy read to the buffer on position 1
-            is limited to STACK_NBYTE_SIZE
-          */
-          size = pStackContext->Buffer[1];
-          if ( size > STACK_NBYTE_SIZE )
-          {
-            size = STACK_NBYTE_SIZE;
-          }
-
-          /*
-            A case of block reading continuation - remaining data ( size read )
-          */
-          if ( size != 0 )
-          {
-            /*
-              size does not include PEC byte, we receive remaining data with size correction
-            */
-            if (
-              (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ) &&
-              ((pStackContext->CurrentCommand->cmnd_query & ( READ | PROCESS_CALL )) == 0 )
-            )
-            {
-              size += PEC_SIZE;
-            }
-            pStackContext->Byte_count += size;
-            HAL_SMBUS_Slave_Receive_IT( hsmbus, &(pStackContext->Buffer[2]), size, SMBUS_LAST_FRAME_NO_PEC + (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ) );
-          }
-
-          pStackContext->StateMachine &= ~(SMBUS_SMS_RECEIVE | SMBUS_SMS_PROCESSING);
-          /*
-            reception completed, and the processing flag is cleared to indicate the
-            next reception can execute the command code
-          */
-        }
-      }
-      else if (pStackContext->CurrentCommand->cmnd_code == SMBUS_COMMAND_EXT )
-      {
-        pStackContext->StateMachine &= ~SMBUS_SMS_RECEIVE;
-        STACK_SMBUS_ExtendCommand( pStackContext );
-      }
-      else
-      {
-        pStackContext->StateMachine &= ~SMBUS_SMS_RECEIVE;
-        if (pStackContext->SlaveAddress == SMBUS_ADDR_ZONE_READ )
-        {
-          STACK_PMBUS_ZoneReadCallback( pStackContext, 1 );
-        }
-      }
-    }
-  }
-}
-
-/**
-  * @brief  Address Match callbacks.
-  * @param  hsmbus : Pointer to a SMBUS_HandleTypeDef structure that contains
-  *                the configuration information for the specified SMBUS.
-  * @param  TransferDirection: Master request Transfer Direction (Write/Read)
-  * @param  AddrMatchCode: Address Match Code
-  * @retval None
-  */
-void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode)
-{
-  SMBUS_StackHandleTypeDef* pStackContext;
-  uint16_t           size;
-  uint8_t            response;
-  uint32_t           result = STACK_OK;
-
-  /*
-    Resolve which stack serves the port that initiated callback
-   */
-  pStackContext = STACK_SMBUS_ResolveContext( hsmbus );
-  
-  /*
-     Clear the history of command records - if flag was not cleared yet, the application probably doesn't need it
-   */
-  pStackContext->StateMachine &= ~( SMBUS_SMS_QUICK_CMD_W | SMBUS_SMS_QUICK_CMD_R );
-
-  /*
-    First normalize address - bit-shift it
-   */
-  AddrMatchCode = AddrMatchCode << 1;
-
-  /*
-    Check for host notify protocol ( we are host and being addressed )
-   */
-  if (
-    ( pStackContext->Device->Instance->CR1 & SMBUS_PERIPHERAL_MODE_HOST ) &&
-    ( AddrMatchCode == SMBUS_ADDR_HOST ) &&
-    ( TransferDirection == 0 )
-  )
-  {
-    /*
-      In this case we know exactly the frame is 3B long, we are taking a short-cut.
-     */
-    pStackContext->StateMachine &= ~SMBUS_SMS_READY;
-    pStackContext->Byte_count = 3;
-    HAL_SMBUS_Slave_Receive_IT( hsmbus, pStackContext->Buffer, 3, SMBUS_FIRST_AND_LAST_FRAME);
-    pStackContext->CurrentCommand = &HOST_NOTIFY_PROTOCOL;
-  }
-
-  /*
-    Try match for ARA - alert response is checked, but only in case it is us, who issued the signal ( I2C_CR1_ALERTEN )
-   */
-  else if ( ( AddrMatchCode == SMBUS_ADDR_ARA ) && (TransferDirection) && ( (pStackContext->Device->Instance->CR1) & I2C_CR1_ALERTEN ) )
-  {
-    /*
-      The ready (listen) state is over, transition to transmission of alert address
-     */
-    pStackContext->StateMachine &= ~SMBUS_SMS_READY;
-    pStackContext->StateMachine |= SMBUS_SMS_TRANSMIT;
-    pStackContext->Byte_count = 1;
-    HAL_SMBUS_Slave_Transmit_IT( hsmbus, &(pStackContext->OwnAddress), 1, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ));
-
-    /*
-      Turn off the alert signal
-     */
-    pStackContext->Device->Instance->CR1 &= ~I2C_CR1_ALERTEN;
-  }
-  else
-  {
-    /*
-      Address may not be precisely the same - callback to accept the address
-    */
-    if ( STACK_SMBUS_AddrAccpt( pStackContext, AddrMatchCode) == 0 )
-    {
-      
-      /* This is the best way not to block the line */      
-      __HAL_SMBUS_GENERATE_NACK( hsmbus );
-      hsmbus->Instance->ICR |= I2C_ICR_ADDRCF;
-      HAL_SMBUS_EnableListen_IT( hsmbus );
-      /* sometimes writing 0xFF to TXDR helps too */
-    }
-    else
-    {
-      /* Remembering the addres ot the currently processed command */
-      pStackContext->SlaveAddress = AddrMatchCode;
- 
-      /*
-        Read part
-      */
-      if ( TransferDirection != 0 )
-      {
-
-        /* Here we test for a condition when the address match is part of an already ignored read/process call command */
-        if (
-          ( pStackContext->StateMachine & SMBUS_SMS_IGNORED ) && \
-          (pStackContext->CurrentCommand->cmnd_query & ( READ | PROCESS_CALL ) )
-        )
-        {
-          /* This is the best way not to block the line */
-          hsmbus->Instance->TXDR = 0xFF;
-          /* TODO - find a clean way how to abstain from blocking the bus */
-   
-          if ( hsmbus->Instance->ISR & I2C_ISR_TCR )
-          {
-            hsmbus->Instance->CR2 |= (((uint32_t) 1 << 16 ) & I2C_CR2_NBYTES);
-          }
-          __HAL_SMBUS_GENERATE_NACK( hsmbus );
-          hsmbus->Instance->ICR |= I2C_ICR_ADDRCF;
-          pStackContext->StateMachine &= ~(SMBUS_SMS_IGNORED | SMBUS_SMS_ARP_AM);
-          HAL_SMBUS_EnableListen_IT( hsmbus );
-          /* sometimes writing 0xFF to TXDR helps too */
-        }
-        else
-        {
-          /* else stack makes sure the ignored flag is down */
-          pStackContext->StateMachine &= ~SMBUS_SMS_IGNORED;
-   
-          /*
-            If the response is not ready yet, but the read is was preceded by write.
-           */
-          if (( pStackContext->StateMachine & ( SMBUS_SMS_READY | SMBUS_SMS_RESPONSE_READY ) ) == 0 )
-          {
-            /*
-              this is a case of read command - we must execute it first (callback)
-            */
-            if ( pStackContext->StateMachine & SMBUS_SMS_ARP_AM )
-            {
-              /*
-                An ARP command ( determined based on address )
-              */
-              result = STACK_SMBUS_ExecuteCommandARP( pStackContext );
-            }
-#ifdef PMBUS13            
-              else if ( pStackContext->SlaveAddress == SMBUS_ADDR_ZONE_READ )
-              {
-                //__SMBUS_NOSTRETCH(hsmbus);
-                //__SMBUS_ZONE_DISABLE(pStackContext->Device);
-                //pStackContext->Device->Instance->OAR2 |= 0x00000700;
-                //__SMBUS_ZONE_ENABLE(pStackContext->Device);
-                result = STACK_PMBUS_ZoneReadCallback( pStackContext, 0 );
-              }
-#endif 
-            else
-            {
-              /*
-                An regular command
-              */
-              result = STACK_SMBUS_ExecuteCommand( pStackContext );
-            }
-   
-            if ( result == STACK_OK )
-            {
-              /*
-                successful execution - response should be present in IO buffer
-              */
-              pStackContext->StateMachine |= SMBUS_SMS_RESPONSE_READY;
-            }
-          }
-   
-          if ( result != STACK_OK )
-          {
-            /*
-              Command callback execution failed - sending NACK
-            */
-            pStackContext->StateMachine |= SMBUS_SMS_IGNORED;
-            __HAL_SMBUS_GENERATE_NACK( hsmbus );
-            hsmbus->Instance->ICR |= I2C_ICR_ADDRCF;
-            HAL_SMBUS_EnableListen_IT( hsmbus );
-            /* sometimes writing 0xFF to TXDR helps too */
-          }
-          else
-          {
-            if ( pStackContext->StateMachine & SMBUS_SMS_RESPONSE_READY )
-            {
-              /*
-              * means we received and executed command and have data to send back
-              */
-              pStackContext->StateMachine |= SMBUS_SMS_TRANSMIT;
-   
-              if  ( ( pStackContext->CurrentCommand->cmnd_query & BLOCK ) == BLOCK )
-              {
-                /*
-                  Variable reply size - size is also prepared
-                  by the command in the output buffer (hopefully).
-                  is limited to STACK_NBYTE_SIZE
-                */
-                if ( pStackContext->Buffer[1] > STACK_NBYTE_SIZE )
-                {
-                  pStackContext->Buffer[1] = STACK_NBYTE_SIZE;
-                }
-                size = 1 + (pStackContext->Buffer[1]); /* count + actual data */
-   
-                /*
-                  Info about current command will not be needed more.
-                  Normally this is reset in listen complete (stop condition) but process call
-                  is an exception.
-                */
-                pStackContext->CurrentCommand = NULL;
-              }
-              else
-              {
-                /*
-                  a regular read byte or word command
-                */
-                size = pStackContext->CurrentCommand->cmnd_master_Rx_size;
-              }
-   
-              /*
-              Transmission size is automatically increased by the PEC byte
-              */
-              if (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE )
-              {
-                size += 1; /* PEC byte */
-                pStackContext->Buffer[1] += 1;
-              }
-   
-              /*
-                Now we record the buffer position and send the reply
-              */
-              pStackContext->Byte_count = size;
-              HAL_SMBUS_Slave_Transmit_IT( hsmbus, &(pStackContext->Buffer[1]), size, \
-                                           SMBUS_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ) );
-            }
-            else if ( pStackContext->StateMachine & SMBUS_SMS_READY )
-            {
-              /*
-              * We have no response prepared and no write preceded this read means
-              * this is a receive byte case or a quick command (read)
-              * It is impossible to determine in advance, there are choices:
-              */
-              if (!( pStackContext->StateMachine & SMBUS_SMS_RCV_BYTE_OFF ))
-              {
-                /*
-                If ReceiveByte transaction is not completely disabled, we execute it
-                */
-                size = 1;
-                /* PEC byte */
-                if (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE )
-                {
-                  size += 1;
-                }
-                pStackContext->StateMachine &= ~SMBUS_SMS_RESPONSE_READY;
-                pStackContext->StateMachine |= SMBUS_SMS_TRANSMIT;
-                pStackContext->Byte_count = size;
-                if ( pStackContext->StateMachine & SMBUS_SMS_RCV_BYTE_LMT )
-                {
-                  /*
-                  This is a safe solution that allows the master to transmit STOP and
-                  doesn't not block the QuickCommand
-                  */
-                  response = pStackContext->SRByte | 0x80;
-                  HAL_SMBUS_Slave_Transmit_IT( hsmbus, &(response) , size, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ));
-                }
-                else
-                {
-                  /*
-                  This option allows all possible values of the response byte
-                  but is blocking in case master wants a quick command read
-                  */
-                  HAL_SMBUS_Slave_Transmit_IT( hsmbus, &(pStackContext->SRByte), size, SMBUS_FIRST_AND_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE ));
-                }
-              }
-            }
-          }
-        }
-      }
-      else  /* Write direction detected */
-      {
-        /* New transmission, clearing the 'ignored' flag */
-        pStackContext->StateMachine &= ~SMBUS_SMS_IGNORED;
-   
-        if ( pStackContext->StateMachine & SMBUS_SMS_READY )
-        {
-          /*
-          * A new command arrived - we have to read the first byte to determine it's type
-          */
-          pStackContext->StateMachine &= ~SMBUS_SMS_READY;
-          pStackContext->StateMachine |= SMBUS_SMS_RECEIVE;
-          pStackContext->CurrentCommand = NULL;
-          pStackContext->Byte_count = 1;
-          HAL_SMBUS_Slave_Receive_IT( hsmbus, pStackContext->Buffer, 1, SMBUS_FIRST_FRAME );
-        }
-      }
-    }
-  }
-}
-
-/**
-  * @brief  Listen Complete callbacks.
-  * @param  hsmbus : Pointer to a SMBUS_HandleTypeDef structure that contains
-  *                the configuration information for the specified SMBUS.
-  * @retval None
-  */
-void HAL_SMBUS_ListenCpltCallback(SMBUS_HandleTypeDef *hsmbus)
-{
-  SMBUS_StackHandleTypeDef* pStackContext;
-
-  /*
-    Resolve which stack serves the port that initiated callback
-   */
-  pStackContext = STACK_SMBUS_ResolveContext( hsmbus );
-
-  /*
-    communication over, let's determine what was it
-   */
-  if ( pStackContext->CurrentCommand == 0 )
-  {
-    if ((pStackContext->StateMachine & SMBUS_SMS_RECEIVE) == SMBUS_SMS_RECEIVE )
-    {
-      /*
-        a quick command write detected - address was detected with write but no write occurred
-      */
-      pStackContext->StateMachine |= SMBUS_SMS_QUICK_CMD_W | SMBUS_SMS_READY;
-      STACK_SMBUS_ExecuteCommand( pStackContext );
-    }
-    else if ((pStackContext->StateMachine & SMBUS_SMS_QUICK_CMD_R) == SMBUS_SMS_QUICK_CMD_R )
-    {
-      /*
-        a quick command read case - flag was set during OVR error treatment
-      */
-      STACK_SMBUS_ExecuteCommand( pStackContext );
-    }
-  }
-  else if (( pStackContext->StateMachine & SMBUS_SMS_RESPONSE_READY) != SMBUS_SMS_RESPONSE_READY )
-  {
-    /*
-      we received a simple command we need yet to execute
-     */
-    if ( pStackContext->StateMachine & SMBUS_SMS_ARP_AM )
-    {
-      STACK_SMBUS_ExecuteCommandARP( pStackContext );
-    }
-    else
-    {
-      STACK_SMBUS_ExecuteCommand( pStackContext );
-    }
-  }
-
-  /*
-    As the communication is concluded we want to reset the stack
-   */
-  pStackContext->StateMachine |= SMBUS_SMS_READY;
-  pStackContext->StateMachine &= ~( SMBUS_SMS_RESPONSE_READY | SMBUS_SMS_IGNORED | SMBUS_SMS_ARP_AM | SMBUS_SMS_PROCESSING | SMBUS_SMS_ZONE_READ);
-  pStackContext->CurrentCommand = NULL;
-
-  /* sometimes there is a PEC byte left in RXDR due to command type confusion (READ or WRITE command) */
-  if ( hsmbus->Instance->ISR & I2C_ISR_RXNE )
-  {
-    (*hsmbus->pBuffPtr++) = hsmbus->Instance->RXDR;
-  }
-
-  /*
-    ...and return to listen mode
-   */
-  HAL_SMBUS_EnableListen_IT( hsmbus );
-
-#ifdef PMBUS13  
-  __SMBUS_ZONE_ENABLE(hsmbus);
-#endif /* PMBUS13 */
-}
-
 /**
   * @brief  SMBUS alert signalling (device only).
   * @param  pStackContext : Pointer to a SMBUS_StackHandleTypeDef structure that contains
@@ -999,9 +340,9 @@ void STACK_SMBUS_SendAlert( SMBUS_StackHandleTypeDef* pStackContext )
   /*
     check mode consistency - device only sends
    */
-  if ( ( pStackContext->Device->Instance->CR1 & SMBUS_PERIPHERAL_MODE_SMBUS_HOST ) == 0)
+  if ( ( pStackContext->Device->Instance->CR1 & SMBUS_PERIPHERAL_MODE_HOST ) == 0)
   {
-    pStackContext->Device->Instance->CR1 |= I2C_CR1_ALERTEN;
+    pStackContext->Device->Instance->CR1 |= I2C_CR1_ALERT;
   }
 }
 
@@ -1054,7 +395,6 @@ void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus)
       {
         HAL_SMBUS_DeInit( pStackContext->Device );
         HAL_SMBUS_Init( pStackContext->Device );
-        HAL_SMBUS_EnableListen_IT( pStackContext->Device );
       }
     }
     pStackContext->StateMachine |= SMBUS_SMS_READY;
@@ -1086,22 +426,17 @@ void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus)
       /*
         Arbitration lost, giving up
       */
-      __HAL_SMBUS_GENERATE_NACK( hsmbus );
-      
-      /* TCR may still stretch the SCL */
-      if ( hsmbus->Instance->ISR & I2C_ISR_TCR )
+      CLEAR_BIT(hsmbus->Instance->CR1, I2C_CR1_ACK);
+
+      if ( hsmbus->Instance->SR1 & I2C_SR1_ADDR )
       {
-        hsmbus->Instance->CR2 |= (((uint32_t) 1 << 16 ) & I2C_CR2_NBYTES);
-      }
-      if ( hsmbus->Instance->ISR & I2C_ISR_ADDR )
-      {
-        hsmbus->Instance->ICR |= I2C_ICR_ADDRCF;
+        __HAL_SMBUS_CLEAR_ADDRFLAG(hsmbus);
       }
   
       /*
       Clearing the rest of the transmission, including the HW buffer of peripheral
       */
-      hsmbus->Instance->ISR |= I2C_ISR_TXE;
+      hsmbus->Instance->SR1 |= I2C_SR1_TXE;
       hsmbus->XferCount = 0;
       hsmbus->XferSize = 0;
       hsmbus->XferOptions = 0;
@@ -1114,15 +449,6 @@ void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus)
 #ifdef PMBUS13
     }
 #endif  /* PMBUS13 */
-  }
-  else if ( error & HAL_SMBUS_ERROR_PECERR )
-  {
-    if ( hsmbus->State == HAL_SMBUS_STATE_RESET )
-    {
-      HAL_SMBUS_DeInit( pStackContext->Device );
-      HAL_SMBUS_Init( pStackContext->Device );
-      HAL_SMBUS_EnableListen_IT( pStackContext->Device );
-    }
   }
   else if ( error & HAL_SMBUS_ERROR_ACKF )
   {
@@ -1482,11 +808,6 @@ void STACK_SMBUS_ReadyIfNoAlert( SMBUS_StackHandleTypeDef* pStackContext )
     */
     pStackContext->StateMachine |= SMBUS_SMS_READY;
     pStackContext->CurrentCommand = NULL;
-
-    /*
-      ...and return to listen mode
-    */
-    HAL_SMBUS_EnableListen_IT( pStackContext->Device );
   }
 }
 
@@ -1539,7 +860,7 @@ HAL_StatusTypeDef STACK_SMBUS_Init( SMBUS_StackHandleTypeDef* pStackContext )
    */
   if ( result == STACK_OK )
   {
-    return HAL_SMBUS_EnableListen_IT( pStackContext->Device );
+    return HAL_OK;
   }
   else
   {
@@ -1604,18 +925,13 @@ HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContex
   */
   if ( ( (pStackContext->StateMachine) & SMBUS_SMS_ACTIVE_MASK ) == 0 )
   {
-    /*
-    becoming master, not listening any more
-    */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     if ( pCommand == NULL )
     {
       /*
       quick command case
       */
       size = 0;
-      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC;
+      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME;
       
       /* set buffer to NULL to remove autoend and manage STOP by SW */
       com_buffer = NULL;
@@ -1698,7 +1014,7 @@ HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContex
             /*
               Size of transmission may include the PEC byte
               */
-            xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
+            xFerOptions = SMBUS_FIRST_AND_LAST_FRAME | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
             if (pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE )
             {
               size += 1; /* PEC_SIZE */
@@ -1739,18 +1055,13 @@ HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContex
 HAL_StatusTypeDef STACK_SMBUS_NotifyHost(SMBUS_StackHandleTypeDef *pStackContext)
 {
   HAL_StatusTypeDef     result = STACK_BUSY;
-  uint32_t              xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC;
+  uint32_t              xFerOptions = SMBUS_FIRST_AND_LAST_FRAME;
 
   /*
      First check status of the SMBUS - no transaction ongoing
    */
   if (( (pStackContext->StateMachine) & SMBUS_SMS_ACTIVE_MASK ) == 0 )
   {
-    /*
-    becoming master, not listening any more
-    */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     /*
       Remembering the address and command code for case of further processing of non-trivial command
     */
@@ -1810,12 +1121,6 @@ HAL_StatusTypeDef STACK_SMBUS_HostRead(SMBUS_StackHandleTypeDef *pStackContext, 
    */
   if ( ( pStackContext->StateMachine & SMBUS_SMS_READY ) == SMBUS_SMS_READY )
   {
-
-    /*
-    becoming master, not listening any more
-    */
-    HAL_SMBUS_DisableListen_IT( pStackContext->Device );
-
     /*
       State transition from Ready to Reception
     */
@@ -1828,7 +1133,7 @@ HAL_StatusTypeDef STACK_SMBUS_HostRead(SMBUS_StackHandleTypeDef *pStackContext, 
     if ( pData == NULL )
     {
       size = 0;
-      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC;
+      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME;
     }
     else
     {
@@ -1837,7 +1142,7 @@ HAL_StatusTypeDef STACK_SMBUS_HostRead(SMBUS_StackHandleTypeDef *pStackContext, 
       {
         size += PEC_SIZE;
       }
-      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME_NO_PEC | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
+      xFerOptions = SMBUS_FIRST_AND_LAST_FRAME | ( pStackContext->StateMachine & SMBUS_SMS_PEC_ACTIVE );
     }
 
     /*
