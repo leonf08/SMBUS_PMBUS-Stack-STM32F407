@@ -1,0 +1,2 @@
+# SMBUS_PMBUS-Stack-STM32F407
+Porting SMBUS/PMBUS Stack Middleware for STM32F407 MCU
