@@ -57,7 +57,11 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define LTM4675_DevAddress1			0x4F
+#define LTM4675_DevAddress1			0x9E
+
+#define PAGE_0						0x00
+#define PAGE_1						0x01
+#define ON_NOMINAL_VOLTAGE			0x80
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

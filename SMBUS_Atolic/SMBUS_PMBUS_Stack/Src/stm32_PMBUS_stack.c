@@ -49,11 +49,12 @@
  */
 
 /* ----------- definition of PMBUS commands ---------------- */
-st_command_t PMBUS_COMMANDS_TAB[] = { { PMBC_PAGE, READ_OR_WRITE, 2, 1 }, /* code 00 */
-{ PMBC_OPERATION, READ_OR_WRITE, 2, 1 }, /* code 01 */
-{ PMBC_ON_OFF_CONFIG, READ_OR_WRITE, 2, 1 }, /* code 02 */
-{ PMBC_CLEAR_FAULTS, WRITE, 1, 0 }, /* code 03 */
-{ PMBC_PHASE, READ_OR_WRITE, 2, 1 }, /* code 04 */
+st_command_t PMBUS_COMMANDS_TAB[] = {
+		{ PMBC_PAGE, READ_OR_WRITE, 2, 1 }, /* code 00 */
+		{ PMBC_OPERATION, READ_OR_WRITE, 2, 1 }, /* code 01 */
+		{ PMBC_ON_OFF_CONFIG, READ_OR_WRITE, 2, 1 }, /* code 02 */
+		{ PMBC_CLEAR_FAULTS, WRITE, 1, 0 }, /* code 03 */
+		{ PMBC_PHASE, READ_OR_WRITE, 2, 1 }, /* code 04 */
 #ifdef  PMBUS12
 		{	PMBC_PAGE_PLUS_WRITE , BLOCK_WRITE, 3, 0}, /* code 05 */
 		{	PMBC_PAGE_PLUS_READ , BLK_PRC_CALL, 3, 2}, /* code 06 */

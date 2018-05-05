@@ -289,7 +289,7 @@ HAL_StatusTypeDef HAL_SMBUS_Init(SMBUS_HandleTypeDef *hsmbus)
 
     /*---------------------------- SMBUS CR1 Configuration ----------------------*/
     /* Configure : SMBUS Generalcall and NoStretch mode */
-    hsmbus->Instance->CR1 = (hsmbus->Init.GeneralCallMode | hsmbus->Init.NoStretchMode);
+    hsmbus->Instance->CR1 = (hsmbus->Init.GeneralCallMode | hsmbus->Init.NoStretchMode | hsmbus->Init.PeripheralMode);
 
     /*---------------------------- SMBUS OAR1 Configuration ---------------------*/
     /* Configure : SMBUS Own Address1 and addressing mode */
@@ -1453,31 +1453,38 @@ static HAL_StatusTypeDef SMBUS_MasterTransmit_TXE(SMBUS_HandleTypeDef *hsmbus)
     /* Call TxCpltCallback() directly if no stop mode is set */
     if((CurrentXferOptions != SMBUS_FIRST_AND_LAST_FRAME) && (CurrentXferOptions != SMBUS_LAST_FRAME) && (CurrentXferOptions != SMBUS_NO_OPTION_FRAME))
     {
-      __HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_TX);
+    	__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_TX);
 
-      hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_TX;
-      hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
-      hsmbus->State = HAL_SMBUS_STATE_READY;
+    	hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_TX;
+    	hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
+    	hsmbus->State = HAL_SMBUS_STATE_READY;
 
-      HAL_SMBUS_MasterTxCpltCallback(hsmbus);
+    	HAL_SMBUS_MasterTxCpltCallback(hsmbus);
     }
     else /* Generate Stop condition then Call TxCpltCallback() */
     {
-      /* Disable EVT, BUF and ERR interrupt */
-      __HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_TX);
+    	/* Disable EVT, BUF and ERR interrupt */
+    	__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_TX);
 
-      /* Generate Stop */
-      SMBUS_GENERATE_STOP(hsmbus);
+    	/* Generate Stop */
+    	SMBUS_GENERATE_STOP(hsmbus);
 
-      hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_TX;
-      hsmbus->State = HAL_SMBUS_STATE_READY;
+    	hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_TX;
+    	hsmbus->State = HAL_SMBUS_STATE_READY;
     }
   }
-  else if((hsmbus->XferSize != 0U) && (CurrentState == HAL_SMBUS_STATE_BUSY_TX))
+  else if(CurrentState == HAL_SMBUS_STATE_BUSY_TX)
   {
-	  /* Write data to DR */
-	  hsmbus->Instance->DR = (*hsmbus->pBuffPtr++);
-	  hsmbus->XferCount--;
+	  if(hsmbus->XferCount == 0)
+	  {
+		  __HAL_SMBUS_DISABLE_IT(hsmbus, I2C_IT_BUF);
+	  }
+	  else
+	  {
+		  /* Write data to DR */
+		  hsmbus->Instance->DR = (*hsmbus->pBuffPtr++);
+		  hsmbus->XferCount--;
+	  }
   }
   return HAL_OK;
 }

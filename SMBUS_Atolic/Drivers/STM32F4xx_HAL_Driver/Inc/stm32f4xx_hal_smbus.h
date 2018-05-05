@@ -234,8 +234,8 @@ typedef struct
 /** @defgroup SMBUS_nostretch_mode  SMBUS nostretch mode
   * @{
   */
-#define SMBUS_NOSTRETCH_DISABLE                 (0x00000000U)
-#define SMBUS_NOSTRETCH_ENABLE                  I2C_CR1_NOSTRETCH
+#define SMBUS_NOSTRETCH_ENABLE                 (0x00000000U)
+#define SMBUS_NOSTRETCH_DISABLE                I2C_CR1_NOSTRETCH
 /**
   * @}
   */

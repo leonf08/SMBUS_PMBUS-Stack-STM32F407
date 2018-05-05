@@ -43,6 +43,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "main.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -51,6 +52,10 @@
 /* Private variables ---------------------------------------------------------*/
 SMBUS_HandleTypeDef hsmbus1;
 SMBUS_StackHandleTypeDef LTM4675_SMBUS_StackContext;
+DBGMCU_TypeDef* dbg1;
+
+volatile uint8_t* pBuffer;
+volatile uint32_t state = 0;
 
 /* USER CODE END PV */
 
@@ -99,16 +104,56 @@ int main(void)
   MX_GPIO_Init();
   MX_SMBUS_Init();
   /* USER CODE BEGIN 2 */
+  LTM4675_SMBUS_StackContext.Device = &hsmbus1;
   STACK_SMBUS_Init(&LTM4675_SMBUS_StackContext);
 
-  if (STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[0], LTM4675_DevAddress1, WRITE) == HAL_OK)
+  dbg1 = DBGMCU;
+  dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
+
+  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  if(pBuffer != NULL)
   {
-	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[1], LTM4675_DevAddress1, WRITE);
+	  *pBuffer = PAGE_0;
   }
   else
   {
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+	  _Error_Handler(__FILE__, __LINE__);
+  }*/
+
+  /*if(STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[0], LTM4675_DevAddress1, WRITE) == HAL_OK)
+  {
+	  HAL_Delay(5000);
+	  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+	  if(pBuffer != NULL)
+	  {
+		  *pBuffer = ON_NOMINAL_VOLTAGE;
+	  }
+	  else
+	  {
+		  _Error_Handler(__FILE__, __LINE__);
+	  }
+
+	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[1], LTM4675_DevAddress1, WRITE);
+  }*/
+
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  if(pBuffer != NULL)
+  {
+    *pBuffer = 3;
+    *(pBuffer + 1) = PAGE_1;
+    *(pBuffer + 2) = PMBC_OPERATION;
+    *(pBuffer + 3) = ON_NOMINAL_VOLTAGE;
   }
+  else
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);
+
+  HAL_Delay(1000);
+
+  //HAL_SMBUS_DeInit(&hsmbus1);
 
   /* USER CODE END 2 */
 
@@ -116,10 +161,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+	  state = hsmbus1.State;
 
   }
   /* USER CODE END 3 */
@@ -332,18 +377,23 @@ static void MX_GPIO_Init(void)
                            PD0 PD1 PD2 PD3 
                            PD4 PD5 PD6 PD7 */
   GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15 
-                          |GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
+                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0
+						  |GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
                           |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB5 PB6 PB7 */
   GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -363,8 +413,12 @@ void _Error_Handler(char *file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+
+  printf("Error in file %c, in line %d", *file, line);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
   while(1)
   {
+	  break;
   }
   /* USER CODE END Error_Handler_Debug */
 }
