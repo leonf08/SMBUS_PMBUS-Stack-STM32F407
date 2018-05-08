@@ -48,7 +48,8 @@ extern "C" {
 /** @addtogroup STM32F3xx_HAL_Driver
   * @{
   */
-
+extern volatile uint32_t counter;
+extern volatile uint32_t counter_2;
 /** @addtogroup SMBUS
   * @{
   */

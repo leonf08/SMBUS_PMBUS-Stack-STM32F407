@@ -56,6 +56,10 @@ DBGMCU_TypeDef* dbg1;
 
 volatile uint8_t* pBuffer;
 volatile uint32_t state = 0;
+volatile uint16_t temp;
+
+volatile uint32_t counter = 0;
+volatile uint32_t counter_2 = 0;
 
 /* USER CODE END PV */
 
@@ -107,8 +111,8 @@ int main(void)
   LTM4675_SMBUS_StackContext.Device = &hsmbus1;
   STACK_SMBUS_Init(&LTM4675_SMBUS_StackContext);
 
-  dbg1 = DBGMCU;
-  dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
+  //dbg1 = DBGMCU;
+  //dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
 
   /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
   if(pBuffer != NULL)
@@ -136,7 +140,7 @@ int main(void)
 	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[1], LTM4675_DevAddress1, WRITE);
   }*/
 
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
   if(pBuffer != NULL)
   {
     *pBuffer = 3;
@@ -149,7 +153,21 @@ int main(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);*/
+
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+    if(pBuffer != NULL)
+    {
+      *(pBuffer++) = 2;
+      *(pBuffer++) = PAGE_1;
+      *(pBuffer) = PMBC_READ_TEMPERATURE_1;
+    }
+    else
+    {
+      _Error_Handler(__FILE__, __LINE__);
+    }
+
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
 
   HAL_Delay(1000);
 
@@ -162,7 +180,9 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
+	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
 
+	  HAL_Delay(1000);
   /* USER CODE BEGIN 3 */
 	  state = hsmbus1.State;
 
@@ -384,16 +404,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_15 | GPIO_PIN_14;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+  HAL_GPIO_WritePin(GPIOD,GPIO_PIN_15,GPIO_PIN_RESET);
   /*Configure GPIO pins : PB5 PB6 PB7 */
   GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 

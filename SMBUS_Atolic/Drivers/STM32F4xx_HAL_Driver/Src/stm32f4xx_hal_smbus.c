@@ -289,7 +289,7 @@ HAL_StatusTypeDef HAL_SMBUS_Init(SMBUS_HandleTypeDef *hsmbus)
 
     /*---------------------------- SMBUS CR1 Configuration ----------------------*/
     /* Configure : SMBUS Generalcall and NoStretch mode */
-    hsmbus->Instance->CR1 = (hsmbus->Init.GeneralCallMode | hsmbus->Init.NoStretchMode | hsmbus->Init.PeripheralMode);
+    hsmbus->Instance->CR1 = (hsmbus->Init.GeneralCallMode | hsmbus->Init.PeripheralMode);
 
     /*---------------------------- SMBUS OAR1 Configuration ---------------------*/
     /* Configure : SMBUS Own Address1 and addressing mode */
@@ -1529,6 +1529,8 @@ static HAL_StatusTypeDef SMBUS_MasterTransmit_BTF(SMBUS_HandleTypeDef *hsmbus)
 
 	      /* Generate Stop */
 	      SMBUS_GENERATE_STOP(hsmbus);
+	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+	      counter_2++;
 
 	      hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
 	      hsmbus->State = HAL_SMBUS_STATE_READY;
@@ -1571,21 +1573,49 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_RXNE(SMBUS_HandleTypeDef *hsmbus)
     }
     else if((tmp == 1U) || (tmp == 0U))
     {
-      /* Disable Acknowledge */
-      hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
+//    	if(hsmbus->XferOptions != SMBUS_NEXT_FRAME)
+//    	{
+//    		 /*Disable Acknowledge*/
+//    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
+//
+//    		 /*Disable EVT, BUF and ERR interrupt*/
+//    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+//
+//    		 /*Read data from DR*/
+//    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+//    		hsmbus->XferCount--;
+//
+//    		hsmbus->State = HAL_SMBUS_STATE_READY;
+//    		hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
+//
+//    		hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
+//    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+//    	}
+//    	else
+//    	{
+//    		 /*Read data from DR*/
+//    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+//    		hsmbus->XferCount--;
+//
+//    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+//    	}
 
-      /* Disable EVT, BUF and ERR interrupt */
-      __HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+    	/*Disable Acknowledge*/
+    	    		//hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
 
-      /* Read data from DR */
-      (*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
-      hsmbus->XferCount--;
+    	    		 /*Disable EVT, BUF and ERR interrupt*/
+    	    		//__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
 
-      hsmbus->State = HAL_SMBUS_STATE_READY;
-      hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
+    	    		 /*Read data from DR*/
+    	    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+    	    		hsmbus->XferCount--;
 
-      hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
-      HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+    	    		hsmbus->State = HAL_SMBUS_STATE_READY;
+    	    		hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
+
+    	    		hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
+    	    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+
     }
    }
   return HAL_OK;
@@ -1640,6 +1670,8 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_BTF(SMBUS_HandleTypeDef *hsmbus)
     {
       /* Generate Stop */
       SMBUS_GENERATE_STOP(hsmbus);
+      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+      counter++;
     }
 
     /* Read data from DR */
@@ -1659,7 +1691,6 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_BTF(SMBUS_HandleTypeDef *hsmbus)
     hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
 
     HAL_SMBUS_MasterRxCpltCallback(hsmbus);
-
   }
   else
   {
