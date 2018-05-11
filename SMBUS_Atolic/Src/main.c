@@ -58,9 +58,6 @@ volatile uint8_t* pBuffer;
 volatile uint32_t state = 0;
 volatile uint16_t temp;
 
-volatile uint32_t counter = 0;
-volatile uint32_t counter_2 = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,8 +108,8 @@ int main(void)
   LTM4675_SMBUS_StackContext.Device = &hsmbus1;
   STACK_SMBUS_Init(&LTM4675_SMBUS_StackContext);
 
-  //dbg1 = DBGMCU;
-  //dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
+  dbg1 = DBGMCU;
+  dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
 
   /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
   if(pBuffer != NULL)
@@ -155,7 +152,7 @@ int main(void)
 
   STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);*/
 
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
     if(pBuffer != NULL)
     {
       *(pBuffer++) = 2;
@@ -167,7 +164,9 @@ int main(void)
       _Error_Handler(__FILE__, __LINE__);
     }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);*/
+
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[128], LTM4675_DevAddress1, READ);
 
   HAL_Delay(1000);
 
@@ -180,9 +179,7 @@ int main(void)
   while (1)
   {
   /* USER CODE END WHILE */
-	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
 
-	  HAL_Delay(1000);
   /* USER CODE BEGIN 3 */
 	  state = hsmbus1.State;
 

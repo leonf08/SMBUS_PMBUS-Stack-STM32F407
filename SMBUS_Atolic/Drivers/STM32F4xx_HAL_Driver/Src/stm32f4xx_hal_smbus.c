@@ -736,8 +736,16 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Receive_IT(SMBUS_HandleTypeDef *hs
       __HAL_SMBUS_ENABLE(hsmbus);
     }
 
-    /* Disable Pos */
-    hsmbus->Instance->CR1 &= ~I2C_CR1_POS;
+    if((XferOptions == SMBUS_LAST_FRAME) && (Size == 2))
+    {
+    	/* Enable Pos */
+    	hsmbus->Instance->CR1 |= I2C_CR1_POS;
+    }
+    else
+    {
+    	/* Disable Pos */
+    	hsmbus->Instance->CR1 &= ~I2C_CR1_POS;
+    }
 
     hsmbus->State     				= HAL_SMBUS_STATE_BUSY_RX;
     hsmbus->Init.PeripheralMode		= SMBUS_PERIPHERAL_MODE_HOST;
@@ -769,7 +777,6 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Receive_IT(SMBUS_HandleTypeDef *hs
         /* Generate ReStart */
         SMBUS_GENERATE_START(hsmbus);
       }
-    }
 
     /* Process Unlocked */
     __HAL_UNLOCK(hsmbus);
@@ -781,11 +788,39 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Receive_IT(SMBUS_HandleTypeDef *hs
     /* Enable EVT, BUF and ERR interrupt */
     __HAL_SMBUS_ENABLE_IT(hsmbus, SMBUS_IT_RX);
 
+    }
+    else if (hsmbus->PreviousState == HAL_SMBUS_STATE_BUSY_RX)
+    {
+    	if(hsmbus->XferSize <= 2)
+    	{
+    	 /* Process Unlocked */
+    	 __HAL_UNLOCK(hsmbus);
+
+    	 /* Note : The SMBUS interrupts must be enabled after unlocking current process
+    	 to avoid the risk of SMBUS interrupt handle execution before current
+    	 process unlock */
+
+    	 /* Enable EVT and ERR interrupt */
+    	 __HAL_SMBUS_ENABLE_IT(hsmbus, SMBUS_IT_BTF | SMBUS_IT_ERRI);
+    	}
+    	else
+    	{
+    		/* Process Unlocked */
+    		__HAL_UNLOCK(hsmbus);
+
+    		/* Note : The SMBUS interrupts must be enabled after unlocking current process
+    		to avoid the risk of SMBUS interrupt handle execution before current
+    		process unlock */
+
+    		/* Enable EVT, BUF and ERR interrupt */
+    		__HAL_SMBUS_ENABLE_IT(hsmbus, SMBUS_IT_RX);
+    	}
+    }
     return HAL_OK;
   }
   else
   {
-    return HAL_BUSY;
+	  return HAL_BUSY;
   }
 }
 
@@ -1529,8 +1564,6 @@ static HAL_StatusTypeDef SMBUS_MasterTransmit_BTF(SMBUS_HandleTypeDef *hsmbus)
 
 	      /* Generate Stop */
 	      SMBUS_GENERATE_STOP(hsmbus);
-	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-	      counter_2++;
 
 	      hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
 	      hsmbus->State = HAL_SMBUS_STATE_READY;
@@ -1552,73 +1585,67 @@ static HAL_StatusTypeDef SMBUS_MasterTransmit_BTF(SMBUS_HandleTypeDef *hsmbus)
   */
 static HAL_StatusTypeDef SMBUS_MasterReceive_RXNE(SMBUS_HandleTypeDef *hsmbus)
 {
-  if(hsmbus->State == HAL_SMBUS_STATE_BUSY_RX)
-  {
-    uint32_t tmp = 0U;
+	uint32_t CurrentXferOptions = hsmbus->XferOptions;
 
-    tmp = hsmbus->XferCount;
-    if(tmp > 3U)
-    {
-      /* Read data from DR */
-      (*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
-      hsmbus->XferCount--;
+	if(hsmbus->State == HAL_SMBUS_STATE_BUSY_RX)
+	{
+		uint32_t tmp = 0U;
 
-      if(hsmbus->XferCount == 3)
-      {
-        /* Disable BUF interrupt, this help to treat correctly the last 4 bytes
-        on BTF subroutine */
-        /* Disable BUF interrupt */
-        __HAL_SMBUS_DISABLE_IT(hsmbus, I2C_IT_BUF);
-      }
-    }
-    else if((tmp == 1U) || (tmp == 0U))
-    {
-//    	if(hsmbus->XferOptions != SMBUS_NEXT_FRAME)
-//    	{
-//    		 /*Disable Acknowledge*/
-//    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
-//
-//    		 /*Disable EVT, BUF and ERR interrupt*/
-//    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
-//
-//    		 /*Read data from DR*/
-//    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
-//    		hsmbus->XferCount--;
-//
-//    		hsmbus->State = HAL_SMBUS_STATE_READY;
-//    		hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
-//
-//    		hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
-//    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
-//    	}
-//    	else
-//    	{
-//    		 /*Read data from DR*/
-//    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
-//    		hsmbus->XferCount--;
-//
-//    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
-//    	}
+		tmp = hsmbus->XferCount;
+		if(tmp > 3U)
+		{
+		  /* Read data from DR */
+		  (*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+		  hsmbus->XferCount--;
 
-    	/*Disable Acknowledge*/
-    	    		//hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
+		  if(hsmbus->XferCount == 3)
+		  {
+			/* Disable BUF interrupt, this help to treat correctly the last 4 bytes
+			on BTF subroutine */
+			/* Disable BUF interrupt */
+			__HAL_SMBUS_DISABLE_IT(hsmbus, I2C_IT_BUF);
+		  }
+		}
+		else if((tmp == 1U) || (tmp == 0U))
+		{
+	    	if(CurrentXferOptions == SMBUS_NEXT_FRAME)
+	    	{
+	    		/*Disable Acknowledge*/
+	    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
 
-    	    		 /*Disable EVT, BUF and ERR interrupt*/
-    	    		//__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+	    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+	    		/*Read data from DR*/
+	    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+	    		hsmbus->XferCount--;
 
-    	    		 /*Read data from DR*/
-    	    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
-    	    		hsmbus->XferCount--;
+	    		hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_RX;
+	    		hsmbus->State = HAL_SMBUS_STATE_READY;
 
-    	    		hsmbus->State = HAL_SMBUS_STATE_READY;
-    	    		hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
+	    		//__HAL_SMBUS_ENABLE_IT(hsmbus, SMBUS_IT_BTF | SMBUS_IT_ERRI);
 
-    	    		hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
-    	    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+	    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+	    	}
+	    	else
+	    	{
+	    		/*Disable Acknowledge*/
+	    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
 
-    }
-   }
-  return HAL_OK;
+	    		/*Disable EVT, BUF and ERR interrupt*/
+	    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+
+	    		/*Read data from DR*/
+	    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
+	    		hsmbus->XferCount--;
+
+	    		hsmbus->State = HAL_SMBUS_STATE_READY;
+	    		hsmbus->PreviousState = HAL_SMBUS_STATE_NONE;
+
+	    		hsmbus->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_NONE;
+	    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
+	    	}
+		}
+	}
+	return HAL_OK;
 }
 
 /**
@@ -1670,8 +1697,6 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_BTF(SMBUS_HandleTypeDef *hsmbus)
     {
       /* Generate Stop */
       SMBUS_GENERATE_STOP(hsmbus);
-      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-      counter++;
     }
 
     /* Read data from DR */
