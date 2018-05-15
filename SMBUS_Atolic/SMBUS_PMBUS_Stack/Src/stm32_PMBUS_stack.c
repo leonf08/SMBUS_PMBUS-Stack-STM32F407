@@ -193,7 +193,7 @@ st_command_t PMBUS_COMMANDS_TAB[] = {
 		{ PMBC_READ_PIN, READ, 1, 2 }, /* code 97 */
 		{ PMBC_PMBUS_REVISION, READ, 1, 1 }, /* code 98 */
 		{ PMBC_MFR_ID, BLK_RD_OR_WR, 1, 1 }, /* code 99 */
-		{ PMBC_MFR_MODEL, BLK_RD_OR_WR, 1, 1 }, /* code 9A */
+		{ PMBC_MFR_MODEL, BLK_RD_OR_WR, 1, 8 }, /* code 9A */
 		{ PMBC_MFR_REVISION, BLK_RD_OR_WR, 1, 1 }, /* code 9B */
 		{ PMBC_MFR_LOCATION, BLK_RD_OR_WR, 1, 1 }, /* code 9C */
 		{ PMBC_MFR_DATE, BLK_RD_OR_WR, 1, 1 }, /* code 9D */

@@ -805,6 +805,9 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Receive_IT(SMBUS_HandleTypeDef *hs
     	}
     	else
     	{
+    		/* Enable Acknowledge */
+    		hsmbus->Instance->CR1 |= I2C_CR1_ACK;
+
     		/* Process Unlocked */
     		__HAL_UNLOCK(hsmbus);
 
@@ -1620,8 +1623,6 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_RXNE(SMBUS_HandleTypeDef *hsmbus)
 
 	    		hsmbus->PreviousState = HAL_SMBUS_STATE_BUSY_RX;
 	    		hsmbus->State = HAL_SMBUS_STATE_READY;
-
-	    		//__HAL_SMBUS_ENABLE_IT(hsmbus, SMBUS_IT_BTF | SMBUS_IT_ERRI);
 
 	    		HAL_SMBUS_MasterRxCpltCallback(hsmbus);
 	    	}

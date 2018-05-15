@@ -111,33 +111,8 @@ int main(void)
   dbg1 = DBGMCU;
   dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
 
-  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
-  if(pBuffer != NULL)
-  {
-	  *pBuffer = PAGE_0;
-  }
-  else
-  {
-	  _Error_Handler(__FILE__, __LINE__);
-  }*/
-
-  /*if(STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[0], LTM4675_DevAddress1, WRITE) == HAL_OK)
-  {
-	  HAL_Delay(5000);
-	  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
-	  if(pBuffer != NULL)
-	  {
-		  *pBuffer = ON_NOMINAL_VOLTAGE;
-	  }
-	  else
-	  {
-		  _Error_Handler(__FILE__, __LINE__);
-	  }
-
-	  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[1], LTM4675_DevAddress1, WRITE);
-  }*/
-
-  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+#ifdef WRITE_BLOCK
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
   if(pBuffer != NULL)
   {
     *pBuffer = 3;
@@ -150,9 +125,11 @@ int main(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);*/
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);
+#endif
 
-  /*pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+#ifdef WRITE_BLOCK_READ_BLOCK_PROCESS_CALL
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
     if(pBuffer != NULL)
     {
       *(pBuffer++) = 2;
@@ -164,13 +141,18 @@ int main(void)
       _Error_Handler(__FILE__, __LINE__);
     }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);*/
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
+#endif
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[128], LTM4675_DevAddress1, READ);
+#ifdef READ_BLOCK
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[124], LTM4675_DevAddress1, READ);
+#endif
 
-  HAL_Delay(1000);
+#ifdef SEND_BYTE
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
 
-  //HAL_SMBUS_DeInit(&hsmbus1);
+  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[15], LTM4675_DevAddress1, WRITE);
+#endif
 
   /* USER CODE END 2 */
 
@@ -181,8 +163,6 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  state = hsmbus1.State;
-
   }
   /* USER CODE END 3 */
 
