@@ -197,7 +197,7 @@ st_command_t PMBUS_COMMANDS_TAB[] = {
 		{ PMBC_MFR_REVISION, BLK_RD_OR_WR, 1, 1 }, /* code 9B */
 		{ PMBC_MFR_LOCATION, BLK_RD_OR_WR, 1, 1 }, /* code 9C */
 		{ PMBC_MFR_DATE, BLK_RD_OR_WR, 1, 1 }, /* code 9D */
-		{ PMBC_MFR_SERIAL, BLK_RD_OR_WR, 1, 9 }, /* code 9E */
+		{ PMBC_MFR_SERIAL, BLK_RD_OR_WR, 1, 1 }, /* code 9E */
 #ifdef  PMBUS12
 		{	PMBC_APP_PROFILE_SUPPORT , BLOCK_READ, 1, 2}, /* code 9F */
 #endif

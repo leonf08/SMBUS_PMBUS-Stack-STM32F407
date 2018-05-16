@@ -890,8 +890,8 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Abort_IT(SMBUS_HandleTypeDef *hsmbus, uint16_
   */
 HAL_StatusTypeDef HAL_SMBUS_EnableAlert_IT(SMBUS_HandleTypeDef *hsmbus)
 {
-  /* Enable SMBus alert */
-  hsmbus->Instance->CR1 |= I2C_CR1_ALERT;
+  /* Enable SMBus alert
+  hsmbus->Instance->CR1 |= I2C_CR1_ALERT;*/
 
   /* Clear ALERT flag */
   __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_ALERT);
@@ -1165,6 +1165,24 @@ void HAL_SMBUS_ER_IRQHandler(SMBUS_HandleTypeDef *hsmbus)
 	  hsmbus->ErrorCode |= HAL_SMBUS_ERROR_OVR;
 	  /* Clear OVR flag */
 	  __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_OVR);
+	}
+
+	/* SMBUS Timeout error interrupt occurred ---------------------------------------------*/
+	if (((sr1itflags & SMBUS_FLAG_TIMEOUT) != RESET) && ((itsources & SMBUS_IT_ERRI) != RESET))
+	{
+	  hsmbus->ErrorCode |= HAL_SMBUS_ERROR_BUSTIMEOUT;
+
+	  /* Clear TIMEOUT flag */
+	  __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_TIMEOUT);
+	}
+
+	/* SMBUS Alert error interrupt occurred -----------------------------------------------*/
+	if (((sr1itflags & SMBUS_FLAG_ALERT) != RESET) && ((itsources & SMBUS_IT_ERRI) != RESET))
+	{
+	  hsmbus->ErrorCode |= HAL_SMBUS_ERROR_ALERT;
+
+	  /* Clear ALERT flag */
+	  __HAL_SMBUS_CLEAR_FLAG(hsmbus, SMBUS_FLAG_ALERT);
 	}
 
 	/* Call the Error Callback in case of Error detected -----------------------*/

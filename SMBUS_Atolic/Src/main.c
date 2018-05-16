@@ -116,7 +116,7 @@ int main(void)
   if(pBuffer != NULL)
   {
     *pBuffer = 3;
-    *(pBuffer + 1) = PAGE_1;
+    *(pBuffer + 1) = PAGE_0;
     *(pBuffer + 2) = PMBC_OPERATION;
     *(pBuffer + 3) = ON_NOMINAL_VOLTAGE;
   }
@@ -126,6 +126,9 @@ int main(void)
   }
 
   STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);
+
+  STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  HAL_Delay(1000);
 #endif
 
 #ifdef WRITE_BLOCK_READ_BLOCK_PROCESS_CALL
@@ -155,9 +158,10 @@ int main(void)
 #endif
 
   /* USER CODE END 2 */
-
+HAL_Delay(2000);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  state = LTM4675_SMBUS_StackContext.StateMachine;
   while (1)
   {
   /* USER CODE END WHILE */

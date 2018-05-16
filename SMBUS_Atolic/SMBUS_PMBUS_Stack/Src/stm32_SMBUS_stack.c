@@ -219,6 +219,7 @@ void HAL_SMBUS_MasterTxCpltCallback(SMBUS_HandleTypeDef *hsmbus)
      */
     STACK_SMBUS_ReadyIfNoAlert( pStackContext );
   }
+  HAL_SMBUS_EnableAlert_IT(hsmbus);
 }
 
 /**
@@ -327,6 +328,7 @@ void HAL_SMBUS_MasterRxCpltCallback(SMBUS_HandleTypeDef *hsmbus)
     pStackContext->StateMachine |= SMBUS_SMS_ERROR;
   }
   /* Program should not reach this statement */
+  HAL_SMBUS_EnableAlert_IT(hsmbus);
 }
 
 /**
@@ -366,13 +368,19 @@ void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus)
      */
     pStackContext->StateMachine |= SMBUS_SMS_ALERT_PENDING;
 
-    if ( (pStackContext->StateMachine & SMBUS_SMS_ACTIVE_MASK) == 0 )
+    if ( (pStackContext->StateMachine & SMBUS_SMS_ACTIVE_MASK) != 0 )
     {
-      /*
+    	if((pStackContext->StateMachine & SMBUS_SMS_READY) != SMBUS_SMS_READY)
+    	{
+    		pStackContext->StateMachine |= SMBUS_SMS_READY;
+    	}
+
+    	/*
         The stack is not busy - we can react immediately
-       */
-      pStackContext->CurrentCommand = &ALERT_RESPONSE;
-      STACK_SMBUS_HostRead( pStackContext, (uint8_t*)&(pStackContext->OwnAddress) , SMBUS_ADDR_ARA);
+    	*/
+    	pStackContext->CurrentCommand = &ALERT_RESPONSE;
+
+    	STACK_SMBUS_HostRead( pStackContext, (uint8_t*)&(pStackContext->OwnAddress) , SMBUS_ADDR_ARA);
     }
 
     /*
