@@ -1635,6 +1635,7 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_RXNE(SMBUS_HandleTypeDef *hsmbus)
 	    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
 
 	    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);
+
 	    		/*Read data from DR*/
 	    		(*hsmbus->pBuffPtr++) = hsmbus->Instance->DR;
 	    		hsmbus->XferCount--;
@@ -1648,6 +1649,8 @@ static HAL_StatusTypeDef SMBUS_MasterReceive_RXNE(SMBUS_HandleTypeDef *hsmbus)
 	    	{
 	    		/*Disable Acknowledge*/
 	    		hsmbus->Instance->CR1 &= ~I2C_CR1_ACK;
+
+	    		SMBUS_GENERATE_STOP(hsmbus);
 
 	    		/*Disable EVT, BUF and ERR interrupt*/
 	    		__HAL_SMBUS_DISABLE_IT(hsmbus, SMBUS_IT_RX);

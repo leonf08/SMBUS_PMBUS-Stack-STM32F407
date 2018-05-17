@@ -38,12 +38,10 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+/* USER CODE BEGIN Includes */
 #include "stm32_SMBUS_stack.h"
 #include "stm32_PMBUS_stack.h"
-
-/* USER CODE BEGIN Includes */
 #include "main.h"
-#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -64,7 +62,6 @@ volatile uint16_t temp;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SMBUS_Init(void);
-
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
@@ -125,10 +122,12 @@ int main(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE);
+  while (STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE) != HAL_OK);
 
-  STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
   HAL_Delay(1000);
+
+  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  temp = *pBuffer;
 #endif
 
 #ifdef WRITE_BLOCK_READ_BLOCK_PROCESS_CALL
@@ -402,6 +401,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef* pStackContext )
+{
+	if(pStackContext->StateMachine & SMBUS_SMS_ALERT_ADDRESS)
+	{
+		pStackContext->StateMachine = SMBUS_SMS_READY;
+	}
+}
 
 /* USER CODE END 4 */
 

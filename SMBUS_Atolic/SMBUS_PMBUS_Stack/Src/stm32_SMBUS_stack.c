@@ -380,7 +380,7 @@ void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus)
     	*/
     	pStackContext->CurrentCommand = &ALERT_RESPONSE;
 
-    	STACK_SMBUS_HostRead( pStackContext, (uint8_t*)&(pStackContext->OwnAddress) , SMBUS_ADDR_ARA);
+    	STACK_SMBUS_HostRead( pStackContext, hsmbus->pBuffPtr , SMBUS_ADDR_ARA);
     }
 
     /*
