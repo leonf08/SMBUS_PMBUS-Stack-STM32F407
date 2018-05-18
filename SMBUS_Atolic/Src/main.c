@@ -37,11 +37,10 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+#include "main.h"
 /* USER CODE BEGIN Includes */
 #include "stm32_SMBUS_stack.h"
 #include "stm32_PMBUS_stack.h"
-#include "main.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -408,7 +407,6 @@ void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef* pStackContext )
 		pStackContext->StateMachine = SMBUS_SMS_READY;
 	}
 }
-
 /* USER CODE END 4 */
 
 /**

@@ -44,6 +44,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 /* USER CODE BEGIN Includes */
+#include "stm32f4xx_hal.h"
 
 /* USER CODE END Includes */
 
@@ -76,7 +77,7 @@ void _Error_Handler(char *, int);
 }
 #endif
 
-void STACK_SMBUS_AlertClbk(SMBUS_StackHandleTypeDef* );
+
 
 #endif /* __MAIN_H__ */
 

@@ -98,7 +98,7 @@ extern "C"
 #define SMBUS_SMS_ERR_PECERR     ((uint32_t)0x00800000)  /*!< PEC error - data integrity lost                         */
 #define SMBUS_SMS_ACTIVE_MASK    ( SMBUS_SMS_TRANSMIT | SMBUS_SMS_RECEIVE | SMBUS_SMS_PROCESSING | SMBUS_SMS_RESPONSE_READY | SMBUS_SMS_ALERT_PENDING )
 
-#define STACK_NBYTE_SIZE         ((uint32_t)40) /*!< maximum of allowed data bytes in a block transfer   */
+#define STACK_NBYTE_SIZE         (40U) /*!< maximum of allowed data bytes in a block transfer   */
   /* Note: As per SMBus 3.0 the process call may be up to 255B long. For SMBus 2.0 the buffer may be 40B */
 #define PEC_SIZE                 ((uint32_t)1)  /*!< PEC size in bytes                                   */
 
@@ -273,7 +273,7 @@ extern "C"
   __weak ErrorStatus STACK_SMBUS_AddrAccpt( SMBUS_StackHandleTypeDef *pStackContext, uint16_t AddrMatchCode);
   __weak HAL_StatusTypeDef STACK_SMBUS_ExecuteCommand( SMBUS_StackHandleTypeDef *pStackContext );
   __weak HAL_StatusTypeDef STACK_SMBUS_ExtendCommand( SMBUS_StackHandleTypeDef *pStackContext );
-  __weak void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef *pStackContext );
+  void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef *pStackContext );
   __weak void STACK_SMBUS_LocateCommand( SMBUS_StackHandleTypeDef *pStackContext );
   HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContext, st_command_t *pCommand, uint16_t address, uint32_t direction);
   HAL_StatusTypeDef STACK_SMBUS_HostRead(SMBUS_StackHandleTypeDef *pStackContext, uint8_t *pData, uint16_t address);
