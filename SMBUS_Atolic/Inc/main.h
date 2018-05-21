@@ -63,8 +63,6 @@
 #define PAGE_0						0x00
 #define PAGE_1						0x01
 #define ON_NOMINAL_VOLTAGE			0x80
-
-#define WRITE_BLOCK
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -52,8 +52,6 @@ SMBUS_StackHandleTypeDef LTM4675_SMBUS_StackContext;
 DBGMCU_TypeDef* dbg1;
 
 volatile uint8_t* pBuffer;
-volatile uint32_t state = 0;
-volatile uint16_t temp;
 
 /* USER CODE END PV */
 
@@ -126,7 +124,6 @@ int main(void)
   HAL_Delay(1000);
 
   pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
-  temp = *pBuffer;
 #endif
 
 #ifdef WRITE_BLOCK_READ_BLOCK_PROCESS_CALL
@@ -159,7 +156,6 @@ int main(void)
 HAL_Delay(2000);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  state = LTM4675_SMBUS_StackContext.StateMachine;
   while (1)
   {
   /* USER CODE END WHILE */
