@@ -47,11 +47,23 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-SMBUS_HandleTypeDef hsmbus1;
-SMBUS_StackHandleTypeDef LTM4675_SMBUS_StackContext;
+SMBUS_HandleTypeDef* hsmbus1;
+SMBUS_StackHandleTypeDef* LTM4675_SMBUS_StackContext;
 DBGMCU_TypeDef* dbg1;
 
 volatile uint8_t* pBuffer;
+
+uint8_t LTM4675_device_list[SMBUS_DEVICES_NUMBER] = {
+		LTM_1,
+		LTM_2,
+		LTM_3,
+		LTM_4,
+		LTM_5,
+		LTM_6,
+		LTM_7,
+		LTM_8,
+		LTM_FPGA
+};
 
 /* USER CODE END PV */
 
@@ -61,7 +73,7 @@ static void MX_GPIO_Init(void);
 static void MX_SMBUS_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[]);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -99,14 +111,14 @@ int main(void)
   MX_GPIO_Init();
   MX_SMBUS_Init();
   /* USER CODE BEGIN 2 */
-  LTM4675_SMBUS_StackContext.Device = &hsmbus1;
-  STACK_SMBUS_Init(&LTM4675_SMBUS_StackContext);
+  LTM4675_SMBUS_StackContext->Device = hsmbus1;
+  STACK_SMBUS_Init(LTM4675_SMBUS_StackContext);
 
   dbg1 = DBGMCU;
   dbg1->APB1FZ = DBGMCU_APB1_FZ_DBG_I2C1_SMBUS_TIMEOUT;
 
 #ifdef WRITE_BLOCK
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  pBuffer = STACK_SMBUS_GetBuffer(LTM4675_SMBUS_StackContext);
   if(pBuffer != NULL)
   {
     *pBuffer = 3;
@@ -119,15 +131,15 @@ int main(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  while (STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE) != HAL_OK);
+  while (STACK_SMBUS_HostCommand(LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[5], LTM4675_DevAddress1, WRITE) != HAL_OK);
 
   HAL_Delay(1000);
 
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  pBuffer = STACK_SMBUS_GetBuffer(LTM4675_SMBUS_StackContext);
 #endif
 
 #ifdef WRITE_BLOCK_READ_BLOCK_PROCESS_CALL
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  pBuffer = STACK_SMBUS_GetBuffer(LTM4675_SMBUS_StackContext);
     if(pBuffer != NULL)
     {
       *(pBuffer++) = 2;
@@ -139,17 +151,17 @@ int main(void)
       _Error_Handler(__FILE__, __LINE__);
     }
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
+  STACK_SMBUS_HostCommand(LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[6], LTM4675_DevAddress1, 0);
 #endif
 
 #ifdef READ_BLOCK
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[124], LTM4675_DevAddress1, READ);
+  STACK_SMBUS_HostCommand(LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[124], LTM4675_DevAddress1, READ);
 #endif
 
 #ifdef SEND_BYTE
-  pBuffer = STACK_SMBUS_GetBuffer(&LTM4675_SMBUS_StackContext);
+  pBuffer = STACK_SMBUS_GetBuffer(LTM4675_SMBUS_StackContext);
 
-  STACK_SMBUS_HostCommand(&LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[15], LTM4675_DevAddress1, WRITE);
+  STACK_SMBUS_HostCommand(LTM4675_SMBUS_StackContext, &PMBUS_COMMANDS_TAB[15], LTM4675_DevAddress1, WRITE);
 #endif
 
   /* USER CODE END 2 */
@@ -221,25 +233,25 @@ void SystemClock_Config(void)
 /* I2C1 init function */
 static void MX_SMBUS_Init(void)
 {
-	hsmbus1.Instance = I2C1;
-	hsmbus1.Init.ClockSpeed = 100000;
-	hsmbus1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-	hsmbus1.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
-	hsmbus1.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_HOST;
-	hsmbus1.Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
-	hsmbus1.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
-	hsmbus1.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
-	hsmbus1.Init.OwnAddress1 = SMBUS_OA1_NOMASK;
-	hsmbus1.Init.OwnAddress2 = SMBUS_OA2_NOMASK;
-	hsmbus1.Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
-	hsmbus1.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
+	hsmbus1->Instance = I2C1;
+	hsmbus1->Init.ClockSpeed = 100000;
+	hsmbus1->Init.DutyCycle = I2C_DUTYCYCLE_2;
+	hsmbus1->Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
+	hsmbus1->Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_HOST;
+	hsmbus1->Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
+	hsmbus1->Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
+	hsmbus1->Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
+	hsmbus1->Init.OwnAddress1 = SMBUS_OA1_NOMASK;
+	hsmbus1->Init.OwnAddress2 = SMBUS_OA2_NOMASK;
+	hsmbus1->Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
+	hsmbus1->Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
 
-	if(HAL_SMBUS_Init(&hsmbus1) != HAL_OK)
+	if(HAL_SMBUS_Init(hsmbus1) != HAL_OK)
 	{
 		_Error_Handler(__FILE__, __LINE__);
 	}
 
-	if (HAL_SMBUS_EnableAlert_IT(&hsmbus1) != HAL_OK)
+	if (HAL_SMBUS_EnableAlert_IT(hsmbus1) != HAL_OK)
 	{
 	    _Error_Handler(__FILE__, __LINE__);
 	}
@@ -396,9 +408,22 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[])
+{
+	/* ON_OFF_CONFIG Settings */
+
+	for(uint8_t index = 0; index < SMBUS_DEVICES_NUMBER; index++)
+	{
+		pBuffer = STACK_SMBUS_GetBuffer(pContext);
+		*pBuffer = ;
+		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_ON_OFF_CONFIG], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
+
+	}
+}
+
 void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef* pStackContext )
 {
-	if(pStackContext->StateMachine & SMBUS_SMS_ALERT_ADDRESS)
+	if(STACK_SMBUS_IsAlert(pStackContext))
 	{
 		pStackContext->StateMachine = SMBUS_SMS_READY;
 	}

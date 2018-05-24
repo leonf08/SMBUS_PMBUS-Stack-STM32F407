@@ -58,7 +58,17 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define LTM4675_DevAddress1			0x9E
+#define SMBUS_DEVICES_NUMBER		9U
+
+#define LTM_1						0x40
+#define LTM_2						0x42
+#define LTM_3						0x44
+#define LTM_4						0x46
+#define LTM_5						0x48
+#define LTM_6						0x4A
+#define LTM_7						0x4C
+#define LTM_8						0x4E
+#define LTM_FPGA					0x4F
 
 #define PAGE_0						0x00
 #define PAGE_1						0x01
