@@ -415,8 +415,9 @@ uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_
 	for(uint8_t index = 0; index < SMBUS_DEVICES_NUMBER; index++)
 	{
 		pBuffer = STACK_SMBUS_GetBuffer(pContext);
-		*pBuffer = ;
-		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_ON_OFF_CONFIG], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
+		*pBuffer = 3;
+		*
+		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_PAGE_PLUS_WRITE], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
 
 	}
 }
