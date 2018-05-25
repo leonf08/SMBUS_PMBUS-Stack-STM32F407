@@ -73,7 +73,7 @@ static void MX_GPIO_Init(void);
 static void MX_SMBUS_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[]);
+HAL_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[]);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -408,7 +408,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[])
+HAL_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[])
 {
 	/* ON_OFF_CONFIG Settings */
 
@@ -416,10 +416,36 @@ uint8_t LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_
 	{
 		pBuffer = STACK_SMBUS_GetBuffer(pContext);
 		*pBuffer = 3;
-		*
+		*(pBuffer++) = PAGE_0;
+
+		/* To configure LTM_FPGA don't use PMBUS */
+		if(index == LTM_FPGA)
+		{
+			*(pBuffer++) = 0x16;
+		}
+		else *(pBuffer++) = 0x1E;
+
 		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_PAGE_PLUS_WRITE], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
 
+		while(!SMBUS_SMS_READY);
+
+		pBuffer = STACK_SMBUS_GetBuffer(pContext);
+		*pBuffer = 3;
+		*(pBuffer++) = PAGE_1;
+
+		/* To configure LTM_FPGA don't use PMBUS */
+		if(index == LTM_FPGA)
+		{
+			*(pBuffer++) = 0x16;
+		}
+		else *(pBuffer++) = 0x1E;
+
+		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_PAGE_PLUS_WRITE], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
 	}
+
+
+
+
 }
 
 void STACK_SMBUS_AlertClbk( SMBUS_StackHandleTypeDef* pStackContext )
