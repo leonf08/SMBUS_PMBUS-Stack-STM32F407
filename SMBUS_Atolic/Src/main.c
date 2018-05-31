@@ -73,7 +73,7 @@ static void MX_GPIO_Init(void);
 static void MX_SMBUS_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-HAL_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[]);
+LTM_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[]);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -408,8 +408,45 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-HAL_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[])
+LTM_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM4675_device_list[])
 {
+	/* Check if LTM_FPGA channels is on, but other LTMs is off */
+
+	for(uint8_t index = 0; index < SMBUS_DEVICES_NUMBER; index++)
+	{
+		volatile uint16_t status;
+
+		STACK_SMBUS_HostCommand(pContext, &PMBUS_COMMANDS_TAB[PMBC_STATUS_WORD], LTM4675_device_list[index], READ);
+
+		while(!SMBUS_SMS_READY);
+
+		pBuffer = STACK_SMBUS_GetBuffer(pContext);
+
+		status = (*(pBuffer + 1) << 7) | *pBuffer;
+
+		/* If any LTM besides LTM_FPGA isn't off, then turn off */
+
+		if(((status & OFF) != OFF) && (LTM4675_device_list[index] != LTM_FPGA))
+		{
+			pBuffer = STACK_SMBUS_GetBuffer(LTM4675_SMBUS_StackContext);
+			if(pBuffer != NULL)
+			{
+				*pBuffer = 3;
+			    *(pBuffer + 1) = PAGE_0;
+			    *(pBuffer + 2) = PMBC_OPERATION;
+			    *(pBuffer + 3) = TURN_OFF;
+			}
+			else
+			{
+			    _Error_Handler(__FILE__, __LINE__);
+			}
+
+			STACK_SMBUS_HostCommand(pContext, &PMBUS_COMMANDS_TAB[PMBC_PAGE_PLUS_WRITE], LTM4675_device_list[index], WRITE);
+
+			while(!SMBUS_SMS_READY);
+		}
+	}
+
 	/* ON_OFF_CONFIG Settings */
 
 	for(uint8_t index = 0; index < SMBUS_DEVICES_NUMBER; index++)
@@ -443,7 +480,7 @@ HAL_StatusTypeDef LTM4675_Init(SMBUS_StackHandleTypeDef* pContext, uint8_t LTM46
 		STACK_PMBUS_HostCommandGroup(pContext, &PMBUS_COMMANDS_TAB[PMBC_PAGE_PLUS_WRITE], LTM4675_device_list[index], (index==SMBUS_DEVICES_NUMBER) ? 1 : 0);
 	}
 
-
+return LTM_OK;
 
 
 }

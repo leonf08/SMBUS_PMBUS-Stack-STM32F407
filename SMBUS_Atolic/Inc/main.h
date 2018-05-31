@@ -72,17 +72,23 @@
 
 #define PAGE_0						0x00
 #define PAGE_1						0x01
-#define ON_NOMINAL_VOLTAGE			0x80
+#define TURN_ON						0x80
+#define TURN_OFF					0x40
 
 typedef enum {
-	NONE_OF_THE_ABOVE		= 0x01,  // A fault not listed in bits[7:1] has occurred
-	CML						= 0x02,	 // A communications, memory or logic fault has occurred
-	TEMPERATURE				= 0x04,  // A temperature fault or warning has occurred
-	IOUT_OC					= 0x10,  // An output overcurrent fault has occurred
-	VOUT_OV					= 0x20,  // An output overvoltage fault has occurred
-	OFF						= 0x40,  // A channel is off
-	BUSY					= 0x80,  // A fault was declared because the LTM4675 was unable to respond
-	POWER_GOOD				= 0x800, // The POWER_GOOD state is false
+	LTM_OK					= 0x0000,		// No fault occurred
+	NONE_OF_THE_ABOVE		= 0x0001,  		// A fault not listed in bits[7:1] has occurred
+	CML						= 0x0002,	 	// A communications, memory or logic fault has occurred
+	TEMPERATURE				= 0x0004,  		// A temperature fault or warning has occurred
+	IOUT_OC					= 0x0010,  		// An output overcurrent fault has occurred
+	VOUT_OV					= 0x0020,  		// An output overvoltage fault has occurred
+	OFF						= 0x0040,  		// A channel is off
+	BUSY					= 0x0080,  		// A fault was declared because the LTM4675 was unable to respond
+	POWER_GOOD				= 0x0800, 		// The POWER_GOOD state is false
+	MFR_SPECIFIC			= 0x1000,		// A fault or warning specific to the LTM4675 has occurred
+	INPUT					= 0x2000,		// An SVin input voltage fault or warning has occurred
+	IOUT					= 0x4000,		// An output current fault or warning has occurred
+	VOUT					= 0x8000		// An output voltage fault or warning has occurred
 } LTM_StatusTypeDef;
 
 /* USER CODE END Private defines */
