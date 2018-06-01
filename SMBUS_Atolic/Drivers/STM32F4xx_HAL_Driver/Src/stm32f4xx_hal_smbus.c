@@ -646,7 +646,7 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Transmit_IT(SMBUS_HandleTypeDef *h
     hsmbus->XferCount   = Size;
     hsmbus->XferOptions = XferOptions;
     hsmbus->XferSize    = hsmbus->XferCount;
-    hsmbus->Devaddress  = DevAddress;
+    hsmbus->Devaddress  = DevAddress << 1;
 
     Prev_State = hsmbus->PreviousState;
 
@@ -756,7 +756,7 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Sequential_Receive_IT(SMBUS_HandleTypeDef *hs
     hsmbus->XferCount = Size;
     hsmbus->XferOptions = XferOptions;
     hsmbus->XferSize    = hsmbus->XferCount;
-    hsmbus->Devaddress = DevAddress;
+    hsmbus->Devaddress = DevAddress << 1;
 
     if((hsmbus->PreviousState == HAL_SMBUS_STATE_BUSY_TX) || (hsmbus->PreviousState == HAL_SMBUS_STATE_NONE))
     {

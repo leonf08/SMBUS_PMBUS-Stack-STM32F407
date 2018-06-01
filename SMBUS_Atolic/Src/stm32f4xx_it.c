@@ -36,7 +36,7 @@
 #include "stm32f4xx_it.h"
 
 /* USER CODE BEGIN 0 */
-extern SMBUS_HandleTypeDef hsmbus1;
+SMBUS_HandleTypeDef* hsmbus1;
 
 /* USER CODE END 0 */
 
@@ -195,12 +195,12 @@ void SysTick_Handler(void)
 /* USER CODE BEGIN 1 */
 void I2C1_EV_IRQHandler(void)
 {
-	HAL_SMBUS_EV_IRQHandler(&hsmbus1);
+	HAL_SMBUS_EV_IRQHandler(hsmbus1);
 }
 
 void I2C1_ER_IRQHandler(void)
 {
-	HAL_SMBUS_ER_IRQHandler(&hsmbus1);
+	HAL_SMBUS_ER_IRQHandler(hsmbus1);
 }
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
