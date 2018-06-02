@@ -58,7 +58,7 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define SMBUS_DEVICES_NUMBER		9U
+#define SMBUS_DEVICES_NUMBER				9U
 
 #define LTM_1						0x40
 #define LTM_2						0x42
@@ -77,15 +77,15 @@
 
 typedef enum {
 	LTM_OK					= 0x0000,		// No fault occurred
-	NONE_OF_THE_ABOVE		= 0x0001,  		// A fault not listed in bits[7:1] has occurred
-	CML						= 0x0002,	 	// A communications, memory or logic fault has occurred
+	NONE_OF_THE_ABOVE			= 0x0001,  		// A fault not listed in bits[7:1] has occurred
+	CML					= 0x0002,	 	// A communications, memory or logic fault has occurred
 	TEMPERATURE				= 0x0004,  		// A temperature fault or warning has occurred
 	IOUT_OC					= 0x0010,  		// An output overcurrent fault has occurred
 	VOUT_OV					= 0x0020,  		// An output overvoltage fault has occurred
-	OFF						= 0x0040,  		// A channel is off
+	OFF					= 0x0040,  		// A channel is off
 	BUSY					= 0x0080,  		// A fault was declared because the LTM4675 was unable to respond
 	POWER_GOOD				= 0x0800, 		// The POWER_GOOD state is false
-	MFR_SPECIFIC			= 0x1000,		// A fault or warning specific to the LTM4675 has occurred
+	MFR_SPECIFIC				= 0x1000,		// A fault or warning specific to the LTM4675 has occurred
 	INPUT					= 0x2000,		// An SVin input voltage fault or warning has occurred
 	IOUT					= 0x4000,		// An output current fault or warning has occurred
 	VOUT					= 0x8000		// An output voltage fault or warning has occurred
