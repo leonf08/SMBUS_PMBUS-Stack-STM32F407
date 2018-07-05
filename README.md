@@ -6,9 +6,10 @@ To use this SMBUS/PMBUS stack do as follows:
 1. Simply add files into your project.
 2. Edit stm32f4xx_hal_conf.h file adding #define HAL_SMBUS_MODULE_ENABLED.
 3. Then lower, where any header files of peripheral are included, add to include header files of SMBUS driver:
-
+``` c
 #ifdef HAL_SMBUS_MODULE_ENABLED
 #include "stm32f4xx_hal_smbus.h"
 #endif /* HAL_SMBUS_MODULE_ENABLED */
+```
 
 4.Try.
